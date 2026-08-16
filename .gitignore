@@ -1,0 +1,90 @@
+# --- Byte-compiled / optimized files ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# --- Distribution / packaging ---
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Virtual environments ---
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# --- Unit test / coverage ---
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# --- Type checkers / linters ---
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# --- Local tooling binaries ---
+# Fetched by install.bat / install.sh on the first run, ~35 MB. Anchored with a
+# leading slash so a repository file that happens to be called "uv" further down
+# the tree is not swallowed by the extensionless Unix name.
+/uv
+/uv.exe
+/uvx
+/uvx.exe
+
+# --- Runtime state (created on first run) ---
+# settings.json holds the recent save folders and, if one was entered, the
+# Hugging Face token. It never belongs in a commit.
+settings.json
+downloader.log
+*.log
+
+# --- Whatever the program downloads -------------------------------------------
+*.part
+
+# --- IDE / editors ---
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Temp ---
+tmp/
+temp/
+*.bak

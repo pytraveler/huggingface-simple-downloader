@@ -1,0 +1,78 @@
+# Changelog
+
+[Русская версия](CHANGELOG.ru.md)
+
+The number in the window title, the git tag and `src/hfdl/__init__.py` always say
+the same thing; the release workflow refuses to publish a tag that does not.
+
+## 1.0.0 - 2026-08-16
+
+First version.
+
+### Added
+
+- **A file list off any Hugging Face repository.** Models, datasets and spaces;
+  anything that names one is accepted - `owner/name`, a repository page, a link
+  into a subfolder, a link to a single file, a `?download=true` link out of
+  somebody's README. LFS sizes are read from `lfs.size` rather than from the
+  pointer, and the list follows the `Link` header past the first thousand
+  entries.
+- **Picking files.** Click a row or a folder to tick it, Space for a whole
+  selection, and a filter box that the Select all / Clear / Invert buttons
+  respect - so `.safetensors` followed by **Select all** means what it looks
+  like. The ticks live in a set of paths, so they survive the filter being
+  cleared.
+- **An "On disk" column** that says what is already in the chosen folder before
+  anything is pressed: *complete*, *partial, 43.1%*, or *other size*.
+- **A history behind all three fields** - repository, mirror and save folder -
+  each a drop-down of the last twelve, newest first, duplicates collapsed, and a
+  right-click to drop one entry or the lot. **Browse...** is still there for a
+  new folder, and picking a repository out of its history loads it. Repositories
+  are stored in a canonical short form (`datasets/squad/tree/main/plain`) that
+  parses back to exactly what was loaded, so one model is one entry however it
+  was typed, and the field is rewritten to that form after a successful load.
+- **The save folder as a drop-down** with a checkbox deciding whether the
+  repository's subfolders come along.
+- **Resuming.** Bytes go to `<name>.part` and are renamed into place only when
+  the file is whole; Stop leaves the `.part` behind and the next Download picks
+  it up from that byte, today or next week. A dropped connection is retried five
+  times with a growing pause, and each retry resumes.
+- **Progress, speed and time left**, per file and for the queue as a whole. The
+  rate is measured over a five-second window, and bytes that were already on
+  disk count towards progress but not towards speed.
+- **Three files at a time** by default, one to eight; Pause and Stop take effect
+  between chunks rather than at the end of a file.
+- **Mirrors.** A **Mirror** field next to the branch decides which Hub is used -
+  `huggingface.co` by default, `hf-mirror.com` offered in the drop-down, and
+  anything else typed in and remembered, path prefixes and `host:port` included.
+  `HF_ENDPOINT` from the environment is the starting value. The endpoint rides
+  on the repository reference rather than in a global, so a list loaded from a
+  mirror also downloads from it. A pasted link never changes the field: a
+  `huggingface.co` link names a repository and is fetched from whatever mirror
+  is set, and a link from any other host is refused with a message pointing at
+  the field - because the field is where the token gets sent.
+- **Private and gated repositories** through a token field. The token is sent to
+  the endpoint's own host only - redirects to a CDN, or from a mirror back to
+  `huggingface.co`, are walked by hand so the `Authorization` header is not
+  carried across, and every retry re-walks from the original URL because a
+  signed CDN link expires.
+- **Russian and English**, switched with one button and following the Windows
+  locale on the first run.
+- **Refusals before the transfer starts**: free space is checked against the
+  volume, and a repository path that would land outside the chosen folder is
+  rejected rather than joined.
+- `install.bat` builds the environment through `uv`, checks that the interpreter
+  can actually import tkinter, and runs the test suite; `HF_Downloader.bat`
+  opens the window and runs the install itself if there is no environment yet.
+- **A Unix half of both launchers** - `install.sh` and `HF_Downloader.sh` -
+  step for step the same, with the uv asset chosen by platform, `.venv/bin/`
+  instead of `.venv\Scripts\`, a warning when there is no `DISPLAY`, and a
+  `chmod +x` at the end so a release ZIP does not need one.
+- **The banner and the language question in four shared scripts**: `logo.bat` /
+  `logo.sh` print it, `lang.bat` / `lang.sh` set `LC`, and every launcher calls
+  them rather than carrying its own copy. `HFDL_LANG` in the environment, then
+  `lang` in `settings.json`, then the OS - the same order as `i18n.pick_lang`
+  on the Python side, so a launcher's banner and the window that follows it
+  cannot end up in different languages. An empty `lang` - which is what the
+  file says until RU / EN has been pressed - falls through to the OS instead of
+  counting as English.
