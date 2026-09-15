@@ -5,6 +5,19 @@
 The number in the window title, the git tag and `src/hfdl/__init__.py` always say
 the same thing; the release workflow refuses to publish a tag that does not.
 
+## 1.3.0 - 2026-09-15
+
+### Added
+
+- **A Windows exe in every release.** `HF_Downloader-1.3.0.exe` is the same
+  program as one file, with Python and httpx inside: no install, no `uv`, no
+  first-run download. `settings.json` and `downloader.log` are kept next to the
+  exe. It is built by PyInstaller on a GitHub Windows runner from the tagged
+  source, with the versions `uv.lock` pins, and is started once there before it
+  is published. It is not code-signed, so SmartScreen may warn on the first run
+  (**More info** - **Run anyway**), and an antivirus may flag it by mistake; the
+  zip still does the same job, and the SHA-256 of both files is in the notes.
+
 ## 1.2.0 - 2026-09-15
 
 ### Added

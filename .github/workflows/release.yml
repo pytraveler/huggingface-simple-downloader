@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -58,8 +58,9 @@ jobs:
             echo "::error::no section for $VERSION in CHANGELOG.md or CHANGELOG.ru.md"
             exit 1
           fi
-          { cat /tmp/en.md; echo; echo "---"; echo; cat /tmp/ru.md; } > /tmp/notes.md
-          cat /tmp/notes.md
+          mkdir -p dist
+          { cat /tmp/en.md; echo; echo "---"; echo; cat /tmp/ru.md; } > dist/notes.md
+          cat dist/notes.md
 
       - name: Pack the archive
         run: |
@@ -121,11 +122,106 @@ jobs:
           done
           echo "checked: the launchers and the package are in, the local state is not"
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: archive
+          path: dist/
+          if-no-files-found: error
+
+  exe:
+    needs: check
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: The versions uv.lock pins, and PyInstaller
+        run: |
+          python -m pip install --quiet uv
+          python -m uv export --frozen --no-dev --no-hashes --no-emit-project -o build-requirements.txt
+          cat build-requirements.txt
+          python -m pip install --quiet -r build-requirements.txt "pyinstaller==6.22.3"
+
+      - name: Build the exe
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p build
+          # __main__.py imports relatively and cannot be the script itself.
+          printf 'import sys\n\nfrom hfdl.app import main\n\nsys.exit(main())\n' > build/HF_Downloader.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed \
+            --name "HF_Downloader-$VERSION" \
+            --paths src \
+            --distpath dist --workpath build/work --specpath build \
+            build/HF_Downloader.py
+          ls -la dist
+
+      - name: The exe opens and writes its log next to itself
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.Substring(1)
+          $dir = New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\smoke"
+          Copy-Item "dist\HF_Downloader-$version.exe" $dir
+          # Started from another folder on purpose: the log has to follow the
+          # exe, not the current directory and not PyInstaller's temp folder.
+          $p = Start-Process "$dir\HF_Downloader-$version.exe" -WorkingDirectory $env:RUNNER_TEMP -PassThru
+          Start-Sleep -Seconds 20
+          $alive = -not $p.HasExited
+          if ($alive) { Stop-Process -Id $p.Id -Force }
+          Get-ChildItem $dir
+          $log = Get-Content "$dir\downloader.log" -Raw -ErrorAction SilentlyContinue
+          $log
+          if (-not $alive) {
+            Write-Output "::error::the exe exited within 20 seconds (code $($p.ExitCode))"
+            exit 1
+          }
+          if ($log -notmatch "hf-simple-downloader $([regex]::Escape($version))") {
+            Write-Output "::error::no downloader.log next to the exe, or it names another version"
+            exit 1
+          }
+          Write-Output "checked: the exe stayed open and logged $version next to itself"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exe
+          path: dist/*.exe
+          if-no-files-found: error
+
+  publish:
+    needs: [check, exe]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "$ARCHIVE" \
+          VERSION="${GITHUB_REF_NAME#v}"
+          ls -la dist
+          {
+            echo
+            echo "---"
+            echo
+            echo "SHA-256"
+            echo
+            echo '```text'
+            (cd dist && sha256sum *.exe *.zip)
+            echo '```'
+          } >> dist/notes.md
+          cat dist/notes.md
+          gh release create "$GITHUB_REF_NAME" dist/*.zip dist/*.exe \
+            --repo "$GITHUB_REPOSITORY" \
             --title "HuggingFace Simple Downloader $VERSION" \
-            --notes-file /tmp/notes.md \
+            --notes-file dist/notes.md \
             --verify-tag

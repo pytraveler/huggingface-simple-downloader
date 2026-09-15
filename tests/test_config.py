@@ -107,3 +107,23 @@ def test_nonsense_values_are_clamped(settings):
     loaded = Settings.load()
     assert loaded.threads <= 8
     assert loaded.lang == ""
+
+
+def test_a_frozen_exe_keeps_its_settings_next_to_itself(tmp_path, monkeypatch):
+    """PyInstaller's __file__ is a temp folder deleted on exit - not a home."""
+    import sys
+
+    from hfdl import config
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "HF_Downloader.exe"))
+    assert config._launcher_dir() == tmp_path.resolve()
+
+
+def test_from_source_the_settings_sit_in_the_project_folder(monkeypatch):
+    import sys
+
+    from hfdl import config
+
+    monkeypatch.delattr(sys, "frozen", raising=False)
+    assert (config._launcher_dir() / "src" / "hfdl" / "config.py").is_file()

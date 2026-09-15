@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -24,14 +25,27 @@ DEFAULT_THREADS = 3
 MAX_THREADS = 8
 
 
+def _launcher_dir() -> Path:
+    """The folder the program was started from.
+
+    The project folder when run from source. In the PyInstaller exe `__file__`
+    points into the temporary folder the exe unpacks itself to and deletes on
+    exit, so settings kept there would be forgotten every run; the exe's own
+    folder is the one the user can see.
+    """
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parents[2]
+
+
 def _root() -> Path:
     """The folder the settings file lives in.
 
-    Next to the launcher normally; `%LOCALAPPDATA%` if that folder turns out to
-    be read-only, which happens when the program is unpacked into `Program
-    Files` or run off a write-protected share.
+    Next to the launcher (or the exe) normally; `%LOCALAPPDATA%` if that folder
+    turns out to be read-only, which happens when the program is unpacked into
+    `Program Files` or run off a write-protected share.
     """
-    here = Path(__file__).resolve().parents[2]
+    here = _launcher_dir()
     probe = here / ".hfdl-write-test"
     try:
         probe.touch()

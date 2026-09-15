@@ -938,7 +938,9 @@ class App(tk.Tk):
 def _setup_logging() -> None:
     from .config import LOG_PATH
 
-    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
+    handlers: list[logging.Handler] = []
+    if sys.stdout is not None:
+        handlers.append(logging.StreamHandler(sys.stdout))
     try:
         handlers.append(logging.FileHandler(LOG_PATH, encoding="utf-8"))
     except OSError:

@@ -5,4 +5,4 @@ hatchling, the window title reads it at startup, and .github/workflows/release.y
 refuses a tag that disagrees with it.
 """
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"

@@ -82,6 +82,24 @@ can also run `install.bat` / `bash install.sh` first to watch it happen.
 > which takes about a minute. Every run after that starts instantly. Neither
 > binary is committed to the repository.
 
+### Or just the exe (Windows)
+
+Every release also carries **`HF_Downloader-<version>.exe`**: the same program
+as one file, with Python and httpx inside - nothing to install, no `uv`, no
+first-run download. Put it in a folder of its own and run it; `settings.json`
+and `downloader.log` appear next to it.
+
+> [!WARNING]
+> The exe is not code-signed. On the first run Windows SmartScreen may say
+> "Windows protected your PC" - **More info**, then **Run anyway**. Antivirus
+> programs also sometimes flag one-file PyInstaller builds by mistake. If that
+> gets in the way, the zip and `HF_Downloader.bat` do exactly the same job. The
+> SHA-256 of both files is at the bottom of the release notes.
+
+The exe starts a second or two slower than the `.bat`: it unpacks itself into a
+temporary folder first. It has no console window, so `downloader.log` is where
+an error goes.
+
 The language follows the OS on the first run and is switched with the
 **RU / EN** button. It is decided the same way in three places - the window,
 `lang.bat` and `lang.sh` - from the same three sources, most deliberate first:
@@ -250,7 +268,7 @@ specifically so that the `Authorization` header is not carried across.
 
 ## What is remembered
 
-`settings.json`, next to the launcher:
+`settings.json`, next to the launcher (or next to the exe):
 
 ```text
 lang               the language, once you have pressed RU / EN
@@ -407,8 +425,15 @@ git tag v1.0.1 && git push origin v1.0.1
 `.github/workflows/release.yml` then refuses the tag if it disagrees with
 `__version__` or if either changelog has no section for it, runs the tests,
 checks that every string still has both languages and that the launchers in the
-archive are CRLF, and publishes a `git archive` of the tag - the same tree
-anyone would get from a clone, nothing built or rewritten.
+archive are CRLF, and packs a `git archive` of the tag - the same tree anyone
+would get from a clone, nothing built or rewritten.
+
+Only a tag that passed all of that gets an exe: a Windows runner installs the
+versions `uv.lock` pins, builds `HF_Downloader-<version>.exe` with PyInstaller
+(`--onefile --windowed`), starts it from another folder and checks that it
+stays open and writes `downloader.log` with the right version next to itself.
+The zip and the exe are published together, with their SHA-256 in the notes,
+or not at all.
 
 ## If something breaks
 
