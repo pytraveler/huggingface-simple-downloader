@@ -452,17 +452,34 @@ class App(tk.Tk):
             return
         self.endpoint_var.set(endpoint)
         revision = self.rev_var.get().strip()
-        if ref.revision == "main" and revision and revision != "main":
+        if (
+            ref.revision == ref.default_revision
+            and revision
+            and revision != ref.revision
+            and not self._left_over_default(ref, revision)
+        ):
             ref = replace(ref, revision=revision)
 
         self._busy = True
         self.fetch_btn.configure(state="disabled")
-        if ref.mirrored:
+        if ref.modelscope:
+            self._say(i18n.MSG_MODELSCOPE.fmt(url=ref.endpoint))
+        elif ref.mirrored:
             self._say(i18n.MSG_MIRROR.fmt(url=ref.endpoint))
         self._say(i18n.MSG_FETCHING.fmt(repo=ref))
         token = self.token_var.get().strip()
         verify = self.settings.verify_ssl
         threading.Thread(target=self._fetch_worker, args=(ref, token, verify), daemon=True).start()
+
+    def _left_over_default(self, ref: hub.RepoRef, revision: str) -> bool:
+        """A `main` still in the branch box from Hugging Face is not a choice.
+
+        Hugging Face and ModelScope name their default branch differently, so
+        after switching between them the box holds the other one's default -
+        which, applied, would ask ModelScope for a `main` it does not have.
+        """
+        switched = self.ref is None or self.ref.modelscope != ref.modelscope
+        return switched and revision in (hub.HF_REVISION, hub.MS_REVISION)
 
     def _fetch_worker(self, ref: hub.RepoRef, token: str, verify: bool) -> None:
         client = hub.make_client(verify=verify)
@@ -732,7 +749,7 @@ class App(tk.Tk):
         self._refresh_history()
 
         self.manager = mgr.Manager(
-            token=self.settings.token,
+            token=hub.token_for(self.ref, self.settings.token),
             threads=self.settings.threads,
             verify=self.settings.verify_ssl,
         )

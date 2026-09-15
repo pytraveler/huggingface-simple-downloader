@@ -19,6 +19,7 @@
 - [How it is used](#how-it-is-used)
 - [Resuming](#resuming)
 - [Mirrors](#mirrors)
+- [ModelScope](#modelscope)
 - [Private and gated repositories](#private-and-gated-repositories)
 - [What is remembered](#what-is-remembered)
 - [Design notes](#design-notes)
@@ -46,6 +47,8 @@ Download.
 - Several files at once (three by default), **Pause** and **Stop** that work
   immediately.
 - Russian and English, switched with one button.
+- **Public repositories on ModelScope** (modelscope.cn and modelscope.ai) too,
+  chosen in the same Mirror field - see [ModelScope](#modelscope).
 
 ## Requirements
 
@@ -160,7 +163,8 @@ is also the record of how far you got:
 ## Mirrors
 
 The **Mirror** field next to the branch says which Hub to talk to. It starts at
-`https://huggingface.co`, offers `https://hf-mirror.com` in the drop-down, and
+`https://huggingface.co`, offers `https://hf-mirror.com` (and the two ModelScope
+sites, below) in the drop-down, and
 remembers anything else you type - a company hub, a caching proxy, a host and
 port on the local network. A bare host is assumed to be `https`, an address may
 carry a path (`https://hub.example.com/hf`), and an empty field means
@@ -188,6 +192,39 @@ hop - credentials stop at the first host, always. For public files this is
 invisible. For a gated repository it means the mirror itself has to serve the
 bytes; if it only redirects, load that one from huggingface.co directly.
 
+## ModelScope
+
+Pick `https://modelscope.cn` or `https://modelscope.ai` in the **Mirror** field.
+ModelScope is not a mirror of the Hub - it has repositories of its own and an
+API of its own - but it is chosen in the same place and then used the same way:
+
+```text
+Qwen/Qwen2.5-0.5B-Instruct
+https://modelscope.cn/models/Qwen/Qwen2.5-0.5B-Instruct/files
+https://modelscope.ai/models/org/model/resolve/master/vae/config.json
+https://modelscope.cn/datasets/modelscope/MMLU-Pro
+```
+
+Models and datasets both work, with their real sizes, a link into a subfolder
+opens that subfolder, and downloads resume and retry exactly as they do from
+huggingface.co. The differences worth knowing:
+
+* The default branch is `master`, not `main`. Datasets have no branch list, so
+  the branch box keeps whatever the list was opened on.
+* ModelScope's *studios* (its equivalent of spaces) are not supported.
+* A link from either ModelScope site is read as naming a repository once
+  ModelScope is in the field. With huggingface.co in the field, a ModelScope
+  link is refused with a message naming the value to pick.
+
+> [!IMPORTANT]
+> **Public repositories only.** Signing in to ModelScope is not implemented,
+> so a private repository there, or one that needs the owner's approval,
+> cannot be downloaded with this program. The log says so every time a list is
+> loaded from ModelScope, and such a repository fails with a message saying
+> exactly that. ModelScope answers *not found* for a private repository, so
+> that message also covers a mistyped name. The HF token is never sent to
+> ModelScope.
+
 ## Private and gated repositories
 
 Accept the licence on huggingface.co, create a **read** token in
@@ -206,7 +243,8 @@ launcher.
 > `settings.json` is in `.gitignore` for a reason, and if you would rather not
 > have it on disk, leave the field empty and paste the token each session.
 
-The token is sent to `huggingface.co` and to nowhere else. A download link
+The token is sent to `huggingface.co` and to nowhere else - never to a CDN, and
+never to ModelScope. A download link
 answers with a redirect to a CDN, and the redirects are walked by hand
 specifically so that the `Authorization` header is not carried across.
 
@@ -219,7 +257,7 @@ lang               the language, once you have pressed RU / EN
 recent_repos       the last twelve repositories that loaded, newest first
 recent_paths       the last twelve save folders, newest first
 recent_endpoints   the last twelve mirrors, newest first
-endpoint           the mirror in use
+endpoint           the mirror, or the ModelScope site, in use
 token              the HF token, if one was entered
 threads            how many files at once
 keep_structure     the subfolders checkbox
@@ -400,3 +438,7 @@ anyone would get from a clone, nothing built or rewritten.
    nothing protects the connection or the token from interception, so switch it
    back off when you can, or exclude huggingface.co from the antivirus's HTTPS
    scanning instead.
+6. **"not found on ModelScope" or "private or needs approval"** - check the
+   name, the branch and the Model / Dataset switch first. If the repository
+   opens in the browser only while you are signed in to ModelScope, it is not
+   public, and this program cannot download it.

@@ -135,8 +135,8 @@ LBL_THREADS = Text("At once:", "Одновременно:")
 LBL_TOKEN = Text("HF token:", "Токен HF:")
 CHK_SHOW_TOKEN = Text("show", "показать")
 HINT_TOKEN = Text(
-    "only needed for private or gated repositories",
-    "нужен только для приватных и gated-репозиториев",
+    "only for private or gated repositories on Hugging Face",
+    "только для приватных и gated-репозиториев Hugging Face",
 )
 CHK_NO_VERIFY = Text(
     "Do not check HTTPS certificates (antivirus or proxy in the way)",
@@ -174,6 +174,12 @@ OVERALL_PAUSED = Text("{done} of {total} - paused", "{done} из {total} - па�
 
 MSG_READY = Text("Ready.", "Готов к работе.")
 MSG_MIRROR = Text("Mirror: {url}", "Зеркало: {url}")
+MSG_MODELSCOPE = Text(
+    "ModelScope: {url}. Public repositories only - this program does not sign in "
+    "to ModelScope, and the HF token is not sent there.",
+    "ModelScope: {url}. Только публичные репозитории - входить в ModelScope "
+    "программа не умеет, и токен HF туда не отправляется.",
+)
 MSG_FETCHING = Text("Reading the file list of {repo}...", "Читаю список файлов {repo}...")
 MSG_FETCHED = Text("{repo}: {n} files, {size} in total", "{repo}: {n} файлов, всего {size}")
 MSG_NO_FILES = Text(
@@ -219,8 +225,10 @@ ERR_BAD_FOLDER = Text(
     "{folder} cannot be created: {err}", "Не удалось создать {folder}: {err}"
 )
 ERR_BAD_REF = Text(
-    "{text} does not look like a repository. Expected owner/name or a huggingface.co link.",
-    "{text} не похоже на репозиторий. Нужно owner/name или ссылка huggingface.co.",
+    "{text} does not look like a repository. Expected owner/name, or a link to "
+    "huggingface.co or ModelScope.",
+    "{text} не похоже на репозиторий. Нужно owner/name или ссылка на "
+    "huggingface.co или ModelScope.",
 )
 ERR_NOT_FOUND = Text(
     "{repo} was not found. Check the name and the kind - a dataset is not a model.",
@@ -245,6 +253,30 @@ ERR_GATED = Text(
     "access token into the HF token field.",
     "{repo} приватный или gated. Примите его лицензию на huggingface.co и вставьте "
     "токен доступа в поле «Токен HF».",
+)
+ERR_MS_NOT_FOUND = Text(
+    "{repo} was not found on ModelScope. Check the name, the branch and the kind - "
+    "a dataset is not a model. A private repository looks exactly the same: only "
+    "public ModelScope repositories can be downloaded here.",
+    "{repo} не найден на ModelScope. Проверьте имя, ветку и тип - датасет не "
+    "модель. Приватный репозиторий выглядит точно так же: с ModelScope здесь "
+    "качаются только публичные репозитории.",
+)
+ERR_MS_PRIVATE = Text(
+    "{repo} on ModelScope is private or needs approval. This program does not sign "
+    "in to ModelScope, so only public repositories can be downloaded from there.",
+    "{repo} на ModelScope приватный или требует одобрения. Входить в ModelScope "
+    "программа не умеет, поэтому оттуда качаются только публичные репозитории.",
+)
+ERR_MS_NO_SPACE = Text(
+    "ModelScope studios cannot be downloaded here - only models and datasets.",
+    "Студии (studios) ModelScope здесь не качаются - только модели и датасеты.",
+)
+ERR_MS_LINK = Text(
+    "{host} is ModelScope. Pick https://{host} in the Mirror field first, then load "
+    "the list again.",
+    "{host} - это ModelScope. Сначала выберите https://{host} в поле «Зеркало», "
+    "потом загрузите список ещё раз.",
 )
 ERR_HTTP = Text("HTTP {status} from {url}", "HTTP {status} от {url}")
 ERR_NETWORK = Text("Network error: {err}", "Ошибка сети: {err}")

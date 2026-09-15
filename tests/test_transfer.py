@@ -82,3 +82,65 @@ def test_control_lets_work_through_by_default():
     control = transfer.Control()
     control.checkpoint()
     assert not control.paused and not control.stopped
+
+
+def test_a_redirect_that_only_a_get_gets_is_followed(tmp_path):
+    """ModelScope answers HEAD on `resolve` with 200 and redirects only the GET.
+
+    Writing that 302's body into the file would be a download of the wrong
+    bytes; the redirect has to be walked, the resume kept, and the token left
+    behind at the first host.
+    """
+    import httpx
+
+    payload = b"0123456789" * 50
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        if request.url.host == "modelscope.cn":
+            if request.method == "HEAD":
+                return httpx.Response(200)
+            return httpx.Response(
+                302,
+                headers={"location": "https://cdn-lfs-cn-1.modelscope.cn/obj"},
+                content=b"<html>redirect</html>",
+            )
+        start = int(request.headers.get("range", "bytes=0-")[6:].rstrip("-") or 0)
+        return httpx.Response(
+            206 if start else 200,
+            content=payload[start:],
+            headers={"content-range": f"bytes {start}-{len(payload) - 1}/{len(payload)}"},
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    target = tmp_path / "model.safetensors"
+    transfer.part_path(target).write_bytes(payload[:120])
+    result = transfer.fetch(
+        client,
+        "https://modelscope.cn/models/o/n/resolve/master/model.safetensors",
+        target,
+        token="secret",
+        size=len(payload),
+    )
+    assert target.read_bytes() == payload
+    assert result.resumed_from == 120
+    cdn = [r for r in seen if r.url.host != "modelscope.cn"]
+    assert cdn and all("authorization" not in r.headers for r in cdn)
+    assert cdn[-1].headers["range"] == "bytes=120-"
+
+
+@pytest.mark.parametrize("url, repo", [
+    ("https://huggingface.co/org/model/resolve/main/x.bin", "org/model"),
+    ("https://huggingface.co/datasets/org/data/resolve/main/x.bin", "org/data"),
+    ("https://modelscope.cn/models/Qwen/Qwen3-8B/resolve/master/x.bin", "Qwen/Qwen3-8B"),
+    ("https://modelscope.cn/api/v1/datasets/o/d/repo?Revision=master&FilePath=a", "o/d"),
+])
+def test_the_repository_is_read_back_out_of_a_link(url, repo):
+    assert transfer._repo_from(url) == repo
+
+
+def test_a_modelscope_refusal_does_not_ask_for_a_token():
+    text = transfer._explain(403, "https://modelscope.cn/models/o/n/resolve/master/x.bin")
+    assert "o/n" in text.en and "public" in text.en
+    assert "token" not in text.en.lower()

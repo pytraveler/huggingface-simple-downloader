@@ -39,7 +39,7 @@ import httpx
 
 from . import i18n
 from .fmt import human_size
-from .hub import USER_AGENT
+from .hub import USER_AGENT, is_modelscope
 from .i18n import Failure
 
 MAX_HOPS = 10
@@ -228,19 +228,30 @@ def _explain(status: int, url: str) -> i18n.Text:
     a worker thread that only knows a link, and "Qwen/Qwen3-8B is gated" is a
     sentence somebody can act on where a 403 and a CDN URL are not.
     """
+    modelscope = is_modelscope(url)
     if status in (401, 403):
-        return i18n.ERR_GATED.fmt(repo=_repo_from(url) or url)
+        wording = i18n.ERR_MS_PRIVATE if modelscope else i18n.ERR_GATED
+        return wording.fmt(repo=_repo_from(url) or url)
     if status == 404:
-        return i18n.ERR_NOT_FOUND.fmt(repo=_repo_from(url) or url)
+        wording = i18n.ERR_MS_NOT_FOUND if modelscope else i18n.ERR_NOT_FOUND
+        return wording.fmt(repo=_repo_from(url) or url)
     return i18n.ERR_HTTP.fmt(status=status, url=url)
 
 
 def _repo_from(url: str) -> str:
-    """`.../owner/name/resolve/main/file` -> `owner/name`, or '' off-site."""
-    path = urlparse(url).path.strip("/")
-    head = path.split("/resolve/", 1)[0]
-    parts = [p for p in head.split("/") if p]
-    if parts and parts[0] in ("datasets", "spaces"):
+    """`.../owner/name/resolve/main/file` -> `owner/name`, or '' off-site.
+
+    ModelScope's dataset links are `/api/v1/datasets/owner/name/repo?...`, and
+    its model links carry a `models/` in front; both come back as `owner/name`.
+    """
+    parts = [p for p in urlparse(url).path.split("/") if p]
+    if parts[:2] == ["api", "v1"]:
+        parts = parts[2:]
+        if "repo" in parts:
+            parts = parts[: parts.index("repo")]
+    elif "resolve" in parts:
+        parts = parts[: parts.index("resolve")]
+    if parts and parts[0] in ("datasets", "spaces", "models"):
         parts = parts[1:]
     return "/".join(parts[:2])
 
@@ -321,37 +332,50 @@ def _attempt(
     on_progress: ProgressFn | None,
     control: Control,
 ) -> tuple[int, str]:
+    """One GET, redirects walked by hand here too.
+
+    `preflight` has usually resolved the CDN link already, but not always:
+    ModelScope answers HEAD on `resolve` with a plain 200 and only redirects a
+    GET. Without this loop the 302's own little HTML body would be written into
+    the `.part` as if it were the file.
+    """
     plan = preflight(client, url, token)
     origin = (urlparse(url).hostname or "").lower()
-    head = _headers(plan.final_url, origin, token)
-    if have:
-        head["Range"] = f"bytes={have}-"
+    current = plan.final_url
 
-    with client.stream("GET", plan.final_url, headers=head, follow_redirects=False) as resp:
-        if resp.status_code >= 400:
-            if resp.status_code in RETRY_STATUS:
-                raise httpx.HTTPStatusError(
-                    f"HTTP {resp.status_code}", request=resp.request, response=resp
-                )
-            raise Failure(_explain(resp.status_code, plan.final_url))
-        if have and resp.status_code != 206:
-            have = 0
-        total = size or plan.size or _total_from(resp, have)
+    for _ in range(MAX_HOPS):
+        head = _headers(current, origin, token)
+        if have:
+            head["Range"] = f"bytes={have}-"
+        with client.stream("GET", current, headers=head, follow_redirects=False) as resp:
+            if resp.status_code in REDIRECTS and resp.headers.get("location"):
+                current = str(httpx.URL(current).join(resp.headers["location"]))
+                continue
+            if resp.status_code >= 400:
+                if resp.status_code in RETRY_STATUS:
+                    raise httpx.HTTPStatusError(
+                        f"HTTP {resp.status_code}", request=resp.request, response=resp
+                    )
+                raise Failure(_explain(resp.status_code, current))
+            if have and resp.status_code != 206:
+                have = 0
+            total = size or plan.size or _total_from(resp, have)
 
-        done = have
-        if on_progress is not None:
-            on_progress(done, total)
-        with open(part, "r+b" if have else "wb") as fh:
-            if have:
-                fh.seek(have)
-                fh.truncate()
-            for block in resp.iter_bytes(chunk):
-                control.checkpoint()
-                fh.write(block)
-                done += len(block)
-                if on_progress is not None:
-                    on_progress(done, total)
-    return done, plan.sha256
+            done = have
+            if on_progress is not None:
+                on_progress(done, total)
+            with open(part, "r+b" if have else "wb") as fh:
+                if have:
+                    fh.seek(have)
+                    fh.truncate()
+                for block in resp.iter_bytes(chunk):
+                    control.checkpoint()
+                    fh.write(block)
+                    done += len(block)
+                    if on_progress is not None:
+                        on_progress(done, total)
+        return done, plan.sha256
+    raise Failure(i18n.ERR_REDIRECTS.fmt(n=MAX_HOPS, url=url))
 
 
 def _total_from(resp: httpx.Response, have: int) -> int | None:

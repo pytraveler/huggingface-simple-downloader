@@ -5,6 +5,28 @@
 The number in the window title, the git tag and `src/hfdl/__init__.py` always say
 the same thing; the release workflow refuses to publish a tag that does not.
 
+## 1.2.0 - 2026-09-15
+
+### Added
+
+- **ModelScope - public repositories only.** Pick `https://modelscope.cn` or
+  `https://modelscope.ai` in the **Mirror** field and load models and datasets
+  from there the same way as from the Hub: a name, a `modelscope.cn/models/...`
+  page, a link into a subfolder or to one file. ModelScope's own API is used -
+  real LFS sizes, `master` as the default branch, the paged dataset tree - and
+  the download resumes and retries exactly as it does on huggingface.co.
+  Signing in to ModelScope is **not** supported: private and approval-gated
+  repositories there cannot be downloaded, the log says so each time a list is
+  loaded from ModelScope, and a refusal says so instead of asking for a token.
+  The HF token is never sent to ModelScope.
+
+### Fixed
+
+- **A redirect that arrives only on GET is followed.** A server that answers
+  HEAD with 200 but redirects the GET itself would have had the redirect page
+  written into the `.part` file. Downloads now walk redirects on the GET as
+  well, with the token still left behind at the first host.
+
 ## 1.1.0 - 2026-09-15
 
 ### Fixed
