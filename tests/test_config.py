@@ -60,12 +60,22 @@ def test_a_round_trip_keeps_everything(settings):
     settings.remember_endpoint("https://hf-mirror.com")
     settings.endpoint = "https://hf-mirror.com"
     settings.lang = "ru"
+    settings.verify_ssl = False
     settings.save()
 
     again = Settings.load()
     assert again.recent_repos == ["datasets/squad"]
     assert again.endpoint == "https://hf-mirror.com"
     assert again.lang == "ru"
+    assert again.verify_ssl is False
+
+
+def test_certificate_checking_is_on_unless_switched_off_exactly(settings):
+    from hfdl import config
+
+    assert Settings().verify_ssl is True
+    config.SETTINGS_PATH.write_text(json.dumps({"verify_ssl": "no"}), encoding="utf-8")
+    assert Settings.load().verify_ssl is True
 
 
 def test_a_missing_file_is_a_fresh_install(settings):

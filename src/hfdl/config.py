@@ -54,6 +54,7 @@ class Settings:
     token: str = ""
     threads: int = DEFAULT_THREADS
     keep_structure: bool = True
+    verify_ssl: bool = True
     last_repo: str = ""
     last_repo_type: str = "model"
     endpoint: str = ""                  
@@ -95,6 +96,7 @@ class Settings:
             return cls()
         settings.threads = max(1, min(MAX_THREADS, int(settings.threads or DEFAULT_THREADS)))
         settings.lang = settings.lang if settings.lang in ("en", "ru") else ""
+        settings.verify_ssl = settings.verify_ssl is not False
         settings.recent_paths = [str(p) for p in settings.recent_paths][:MAX_RECENT]
         settings.recent_repos = [str(r) for r in settings.recent_repos][:MAX_RECENT]
         settings.recent_endpoints = [str(e) for e in settings.recent_endpoints][:MAX_RECENT]

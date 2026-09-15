@@ -5,6 +5,25 @@
 The number in the window title, the git tag and `src/hfdl/__init__.py` always say
 the same thing; the release workflow refuses to publish a tag that does not.
 
+## 1.1.0 - 2026-09-15
+
+### Fixed
+
+- **HTTPS behind an antivirus that inspects it.** Kaspersky, ESET, Avast and
+  corporate proxies re-sign every site with their own root, which they install
+  into the system store. httpx trusted only `certifi`, so every request ended in
+  `CERTIFICATE_VERIFY_FAILED`. Certificates are now checked against the system
+  store as well as certifi, the same way a browser checks them, and that root is
+  trusted without switching anything off.
+
+### Added
+
+- **A *Do not check HTTPS certificates* box** under the token field, for a proxy
+  whose root is not in the system store either. It covers both the file list
+  and the downloads, is remembered in `settings.json` as `verify_ssl`, and while
+  it is ticked the log says so at every start. It is off by default: with it on,
+  nothing protects the connection or the token from interception.
+
 ## 1.0.0 - 2026-08-16
 
 First version.

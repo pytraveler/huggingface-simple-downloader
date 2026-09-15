@@ -223,6 +223,7 @@ endpoint           the mirror in use
 token              the HF token, if one was entered
 threads            how many files at once
 keep_structure     the subfolders checkbox
+verify_ssl         false once certificate checking has been switched off
 last_repo          what was left in the repository field
 geometry           the window's size and position
 ```
@@ -389,3 +390,13 @@ anyone would get from a clone, nothing built or rewritten.
    size the Hub reports, so it is never counted as finished. The **On disk**
    column shows *other size* when that is the case; delete the file and let it
    come down again.
+5. **`CERTIFICATE_VERIFY_FAILED` over and over** - something between you and
+   the Hub is re-signing HTTPS: an antivirus with web scanning (Kaspersky, ESET,
+   Avast) or a corporate proxy. Certificates are checked against the system
+   store as well as certifi, so a root the antivirus installed into Windows is
+   already trusted and this usually does not happen. If it still does, tick
+   *Do not check HTTPS certificates* under the token field. The box is
+   remembered, and the log says it is off at every start - with it ticked,
+   nothing protects the connection or the token from interception, so switch it
+   back off when you can, or exclude huggingface.co from the antivirus's HTTPS
+   scanning instead.

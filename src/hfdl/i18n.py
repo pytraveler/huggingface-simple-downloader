@@ -138,7 +138,11 @@ HINT_TOKEN = Text(
     "only needed for private or gated repositories",
     "нужен только для приватных и gated-репозиториев",
 )
-TITLE_CHOOSE_FOLDER = Text("Where to save the files", "Куда сохранять файлы")
+CHK_NO_VERIFY = Text(
+    "Do not check HTTPS certificates (antivirus or proxy in the way)",
+    "Не проверять HTTPS-сертификаты (мешает антивирус или прокси)",
+)
+TITLE_CHOOSE_FOLDER =Text("Where to save the files", "Куда сохранять файлы")
 
 QCOL_FILE = Text("File", "Файл")
 QCOL_DONE = Text("Progress", "Прогресс")
@@ -191,7 +195,11 @@ MSG_FINISHED = Text(
     "Finished: {ok} downloaded, {skip} already there, {fail} failed.",
     "Завершено: {ok} скачано, {skip} уже было, {fail} с ошибкой.",
 )
-MSG_LANG_SWITCHED = Text("Language: English", "Язык: русский")
+MSG_NO_VERIFY = Text(
+    "Certificate checking is off - connections are not protected from interception.",
+    "Проверка сертификатов отключена - соединение не защищено от перехвата.",
+)
+MSG_LANG_SWITCHED =Text("Language: English", "Язык: русский")
 WARN_FLAT_CLASH = Text(
     "{n} files share a name and would overwrite each other - their subfolders "
     "were kept.",

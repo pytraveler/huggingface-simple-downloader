@@ -218,3 +218,20 @@ def test_without_hf_endpoint_it_is_huggingface(monkeypatch):
     monkeypatch.delenv("HF_ENDPOINT", raising=False)
     assert hub.default_endpoint() == hub.DEFAULT_ENDPOINT
     assert not hub.RepoRef().mirrored
+
+
+def test_the_client_checks_certificates_against_the_system_store_by_default():
+    import ssl
+
+    with hub.make_client() as client:
+        context = client._transport._pool._ssl_context
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname
+
+
+def test_the_client_can_be_told_not_to_check_certificates():
+    import ssl
+
+    with hub.make_client(verify=False) as client:
+        context = client._transport._pool._ssl_context
+    assert context.verify_mode == ssl.CERT_NONE

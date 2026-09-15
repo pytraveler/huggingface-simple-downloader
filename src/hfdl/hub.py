@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import os
 import re
+import ssl
 from dataclasses import dataclass
 from urllib.parse import quote, unquote, urlparse
 
@@ -249,12 +250,38 @@ def _split_revision(parts: list[str]) -> tuple[str, list[str]]:
     return parts[0], parts[1:]
 
 
-def make_client(timeout: float = 30.0) -> httpx.Client:
-    """A client with a read timeout long enough for a stalled CDN chunk."""
+def trust_context() -> ssl.SSLContext:
+    """The certificates the OS trusts, plus the ones httpx ships with.
+
+    httpx on its own trusts only `certifi`, and that is what breaks behind an
+    antivirus that inspects HTTPS (Kaspersky, ESET, Avast): it re-signs every
+    site with its own root, which it installs into the Windows store and not,
+    of course, into a Python package. `create_default_context` reads the system
+    store, so that root is trusted the same way a browser trusts it - and
+    certifi is added on top for a machine whose store is out of date.
+    """
+    context = ssl.create_default_context()
+    try:
+        import certifi
+
+        context.load_verify_locations(certifi.where())
+    except (ImportError, OSError, ssl.SSLError):
+        pass
+    return context
+
+
+def make_client(timeout: float = 30.0, verify: bool = True) -> httpx.Client:
+    """A client with a read timeout long enough for a stalled CDN chunk.
+
+    `verify=False` switches certificate checking off altogether. It is the
+    window's last resort for a proxy whose root is not in the system store
+    either, and it is never the default.
+    """
     return httpx.Client(
         timeout=httpx.Timeout(connect=15.0, read=timeout, write=timeout, pool=15.0),
         follow_redirects=False,
         headers={"User-Agent": USER_AGENT},
+        verify=trust_context() if verify else False,
     )
 
 

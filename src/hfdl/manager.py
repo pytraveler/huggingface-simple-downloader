@@ -94,10 +94,13 @@ class Snapshot:
 class Manager:
     """Runs a list of `Job`s across a few threads until they are all finished."""
 
-    def __init__(self, token: str = "", threads: int = 3, retries: int = 5) -> None:
+    def __init__(
+        self, token: str = "", threads: int = 3, retries: int = 5, verify: bool = True
+    ) -> None:
         self.token = token
         self.threads = max(1, threads)
         self.retries = retries
+        self.verify = verify
         self.events: queue.Queue[Text] = queue.Queue()
 
         self._lock = threading.Lock()
@@ -180,7 +183,7 @@ class Manager:
         )
 
     def _work(self) -> None:
-        client = make_client()
+        client = make_client(verify=self.verify)
         try:
             while True:
                 try:

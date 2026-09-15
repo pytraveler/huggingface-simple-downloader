@@ -107,6 +107,8 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.after(TICK, self._tick)
         self._say(i18n.MSG_READY)
+        if not self.settings.verify_ssl:
+            self._say(i18n.MSG_NO_VERIFY)
 
     def _build(self) -> None:
         self.columnconfigure(0, weight=1)
@@ -237,6 +239,11 @@ class App(tk.Tk):
         self.token_hint = ttk.Label(options, foreground="#666666")
         self.token_hint.grid(row=0, column=6, sticky="w", padx=8)
         self._track(self.token_hint, i18n.HINT_TOKEN)
+
+        self.no_verify_var = tk.BooleanVar(value=not self.settings.verify_ssl)
+        insecure = ttk.Checkbutton(options, variable=self.no_verify_var, command=self._toggle_verify)
+        insecure.grid(row=1, column=0, columnspan=7, sticky="w", pady=(4, 0))
+        self._track(insecure, i18n.CHK_NO_VERIFY)
         return box
 
     def _build_files(self, parent: ttk.Widget) -> ttk.Widget:
@@ -454,10 +461,11 @@ class App(tk.Tk):
             self._say(i18n.MSG_MIRROR.fmt(url=ref.endpoint))
         self._say(i18n.MSG_FETCHING.fmt(repo=ref))
         token = self.token_var.get().strip()
-        threading.Thread(target=self._fetch_worker, args=(ref, token), daemon=True).start()
+        verify = self.settings.verify_ssl
+        threading.Thread(target=self._fetch_worker, args=(ref, token, verify), daemon=True).start()
 
-    def _fetch_worker(self, ref: hub.RepoRef, token: str) -> None:
-        client = hub.make_client()
+    def _fetch_worker(self, ref: hub.RepoRef, token: str, verify: bool) -> None:
+        client = hub.make_client(verify=verify)
         try:
             files = hub.list_files(client, ref, token)
             revisions = hub.list_revisions(client, ref, token)
@@ -681,6 +689,17 @@ class App(tk.Tk):
     def _toggle_token(self) -> None:
         self.token_entry.configure(show="" if self.show_token_var.get() else "•")
 
+    def _toggle_verify(self) -> None:
+        """Saved at once: it decides whether the next request gets anywhere at all.
+
+        A queue that is already running keeps the clients it started with; the
+        box applies to the next list load and the next Download press.
+        """
+        self.settings.verify_ssl = not self.no_verify_var.get()
+        self.settings.save()
+        if not self.settings.verify_ssl:
+            self._say(i18n.MSG_NO_VERIFY)
+
     def _start(self) -> None:
         if self.manager and self.manager.running:
             return
@@ -712,7 +731,11 @@ class App(tk.Tk):
         self.settings.token = self.token_var.get().strip()
         self._refresh_history()
 
-        self.manager = mgr.Manager(token=self.settings.token, threads=self.settings.threads)
+        self.manager = mgr.Manager(
+            token=self.settings.token,
+            threads=self.settings.threads,
+            verify=self.settings.verify_ssl,
+        )
         try:
             self.manager.start(jobs)
         except Failure as exc:
