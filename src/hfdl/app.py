@@ -240,9 +240,18 @@ class App(tk.Tk):
         self.token_hint.grid(row=0, column=6, sticky="w", padx=8)
         self._track(self.token_hint, i18n.HINT_TOKEN)
 
+        folder = ttk.Frame(options)
+        folder.grid(row=1, column=0, columnspan=7, sticky="w", pady=(4, 0))
+        self.repo_folder_var = tk.BooleanVar(value=self.settings.repo_folder)
+        own = ttk.Checkbutton(folder, variable=self.repo_folder_var, command=self._refresh_local)
+        own.grid(row=0, column=0, sticky="w")
+        self._track(own, i18n.CHK_REPO_FOLDER)
+        self.folder_hint = ttk.Label(folder, foreground="#666666")
+        self.folder_hint.grid(row=0, column=1, sticky="w", padx=8)
+
         self.no_verify_var = tk.BooleanVar(value=not self.settings.verify_ssl)
         insecure = ttk.Checkbutton(options, variable=self.no_verify_var, command=self._toggle_verify)
-        insecure.grid(row=1, column=0, columnspan=7, sticky="w", pady=(4, 0))
+        insecure.grid(row=2, column=0, columnspan=7, sticky="w", pady=(4, 0))
         self._track(insecure, i18n.CHK_NO_VERIFY)
         return box
 
@@ -652,15 +661,47 @@ class App(tk.Tk):
         )(self.lang))
 
     def _base_dir(self) -> Path | None:
+        """The folder in the box - what the history remembers."""
         text = self.dest_var.get().strip().strip('"')
         return Path(text) if text else None
+
+    def _repo_folder(self) -> str:
+        """The name of the per-repository folder, or empty if there is none.
+
+        Taken from the loaded reference rather than from what the Repository box
+        currently says, because the files about to be saved are that reference's
+        files: a name typed but not loaded yet would put them under the wrong
+        heading. The hint beside the box shows the same name for that reason.
+        """
+        if not self.repo_folder_var.get() or self.ref is None:
+            return ""
+        return self.ref.folder_name
+
+    def _target_dir(self) -> Path | None:
+        """Where the files actually land."""
+        base = self._base_dir()
+        name = self._repo_folder()
+        return base / name if base is not None and name else base
+
+    def _refresh_folder_hint(self) -> None:
+        """Say which folder the checkbox is about to make, before it is made."""
+        if not self.repo_folder_var.get():
+            self.folder_hint.configure(text="")
+            return
+        text = (
+            i18n.HINT_REPO_FOLDER.fmt(name=self.ref.folder_name)
+            if self.ref is not None
+            else i18n.HINT_REPO_FOLDER_WAIT
+        )
+        self.folder_hint.configure(text=text(self.lang))
 
     def _save_rel(self, rel: str) -> str:
         return rel if self.structure_var.get() else rel.rsplit("/", 1)[-1]
 
     def _refresh_local(self) -> None:
         """Recompute the "On disk" column. Cheap: one stat per file."""
-        base = self._base_dir()
+        self._refresh_folder_hint()
+        base = self._target_dir()
         self.local = {}
         if base and self.by_rel:
             for rel, remote in self.by_rel.items():
@@ -687,8 +728,10 @@ class App(tk.Tk):
             self._refresh_local()
 
     def _open_folder(self) -> None:
-        base = self._base_dir()
-        if not base or not base.exists():
+        base = self._target_dir()
+        if base is None or not base.exists():
+            base = self._base_dir()   # the repository folder is made on Download
+        if base is None or not base.exists():
             return
         opener = {"win32": None, "darwin": "open"}.get(sys.platform, "xdg-open")
         try:
@@ -730,14 +773,15 @@ class App(tk.Tk):
         if base is None:
             self._fail(i18n.ERR_NO_FOLDER)
             return
+        target = self._target_dir() or base
         try:
-            base.mkdir(parents=True, exist_ok=True)
+            target.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            self._fail(i18n.ERR_BAD_FOLDER.fmt(folder=base, err=exc))
+            self._fail(i18n.ERR_BAD_FOLDER.fmt(folder=target, err=exc))
             return
 
         try:
-            jobs = self._jobs(base)
+            jobs = self._jobs(target)
         except Failure as exc:
             self._fail(exc.text)
             return
@@ -745,6 +789,7 @@ class App(tk.Tk):
         self.settings.remember_path(str(base))
         self.settings.threads = max(1, min(MAX_THREADS, int(self.threads_var.get() or 3)))
         self.settings.keep_structure = self.structure_var.get()
+        self.settings.repo_folder = self.repo_folder_var.get()
         self.settings.token = self.token_var.get().strip()
         self._refresh_history()
 
@@ -924,6 +969,7 @@ class App(tk.Tk):
         self.settings.geometry = self.winfo_geometry()
         self.settings.threads = max(1, min(MAX_THREADS, int(self.threads_var.get() or 3)))
         self.settings.keep_structure = self.structure_var.get()
+        self.settings.repo_folder = self.repo_folder_var.get()
         self.settings.token = self.token_var.get().strip()
         self.settings.last_repo = self.repo_var.get().strip()
         self.settings.lang = self.lang

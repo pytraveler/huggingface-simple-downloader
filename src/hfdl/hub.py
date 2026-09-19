@@ -70,6 +70,13 @@ _MS_PREFIX = {"model": "models", "dataset": "datasets"}
 _PATH_MARKERS = ("tree", "blob", "resolve", "raw", "commit")
 _NEXT_LINK = re.compile(r'<([^>]+)>\s*;\s*rel="next"')
 
+_UNSAFE_IN_NAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+_RESERVED_NAMES = frozenset(
+    ["CON", "PRN", "AUX", "NUL"]
+    + [f"COM{i}" for i in range(1, 10)]
+    + [f"LPT{i}" for i in range(1, 10)]
+)
+
 
 def normalise_endpoint(text: str) -> str:
     """Read what was typed into the mirror field into a usable base URL.
@@ -191,6 +198,24 @@ class RepoRef:
             if self.subfolder:
                 parts.append(self.subfolder)
         return "/".join(parts)
+
+    @property
+    def folder_name(self) -> str:
+        """A folder name for this repository, safe to create on any platform.
+
+        The name without the owner - `Qwen3-8B` out of `Qwen/Qwen3-8B` - because
+        that is what the model is called everywhere else, and a tree of owner
+        folders is not what somebody browsing their models is looking for. What
+        Windows will not accept in a name is replaced rather than refused: a
+        repository is not going to fail to download over its own punctuation.
+        Anything that would name a folder outside the chosen one comes back
+        empty, and the caller then saves into the chosen folder itself.
+        """
+        name = self.repo_id.rsplit("/", 1)[-1].strip()
+        cleaned = _UNSAFE_IN_NAME.sub("-", name).strip().rstrip(". ")
+        if cleaned.split(".", 1)[0].upper() in _RESERVED_NAMES:
+            cleaned = "_" + cleaned
+        return cleaned
 
     @property
     def page_url(self) -> str:

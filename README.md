@@ -160,6 +160,15 @@ into, newest first; **Browse...** is there for a new one. *Keep the
 repository's subfolders* decides whether `vae/config.json` arrives as
 `vae\config.json` or as `config.json` in the folder itself.
 
+*Make a subfolder named after the repository* saves into a folder of the
+repository's own name inside the one you chose - `Qwen/Qwen3-8B` into
+`...\models\Qwen3-8B` - so one **models** folder can hold them all and the
+drop-down does not fill up with a line per model. The name shown beside the box
+is the one that will be made; it comes from the loaded file list, so it is the
+repository the files actually belong to and not whatever the **Repository** box
+has been typed into since. The folder is created when you press **Download**,
+and the history remembers what you chose, not the folder made inside it.
+
 **4. Press Download.** The queue fills, three files move at a time, and the bar
 above the buttons is the whole queue rather than the current file.
 
@@ -279,6 +288,7 @@ endpoint           the mirror, or the ModelScope site, in use
 token              the HF token, if one was entered
 threads            how many files at once
 keep_structure     the subfolders checkbox
+repo_folder        the per-repository subfolder checkbox
 verify_ssl         false once certificate checking has been switched off
 last_repo          what was left in the repository field
 geometry           the window's size and position

@@ -5,6 +5,23 @@
 The number in the window title, the git tag and `src/hfdl/__init__.py` always say
 the same thing; the release workflow refuses to publish a tag that does not.
 
+## 1.3.1 - 2026-09-19
+
+### Added
+
+- **A folder per repository.** *Make a subfolder named after the repository*, in
+  **Save to**, puts the files into a folder of the repository's own name inside
+  the one chosen - `Qwen/Qwen3-8B` into `...\models\Qwen3-8B` - so one **models**
+  folder holds every model and the folder history keeps one line instead of one
+  per download. The name is shown beside the box before anything is downloaded
+  and is taken from the loaded file list, so it names the repository the files
+  belong to. Whatever a name would be on Windows - a colon, a reserved device
+  name - is made safe rather than refused. The folder itself is created when
+  **Download** is pressed, the **On disk** column already looks inside it, and
+  the folder history remembers the folder that was chosen, not the one made
+  inside it. The checkbox is remembered as `repo_folder` and starts off, so
+  nothing changes for anybody who does not tick it.
+
 ## 1.3.0 - 2026-09-15
 
 ### Added

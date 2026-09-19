@@ -131,6 +131,15 @@ BTN_FORGET = Text("Forget the list", "Очистить список")
 CHK_STRUCTURE = Text(
     "Keep the repository's subfolders", "Сохранять подпапки репозитория"
 )
+CHK_REPO_FOLDER = Text(
+    "Make a subfolder named after the repository",
+    "Создавать подпапку с именем репозитория",
+)
+HINT_REPO_FOLDER = Text("into {name}", "в {name}")
+HINT_REPO_FOLDER_WAIT = Text(
+    "the name comes from the repository - load its file list",
+    "имя берётся из репозитория - загрузите список файлов",
+)
 LBL_THREADS = Text("At once:", "Одновременно:")
 LBL_TOKEN = Text("HF token:", "Токен HF:")
 CHK_SHOW_TOKEN = Text("show", "показать")

@@ -138,6 +138,30 @@ def test_a_slug_parses_back_to_the_same_reference(typed):
     assert again.slug == first.slug
 
 
+@pytest.mark.parametrize(
+    "repo_id, folder",
+    [
+        ("Qwen/Qwen3-8B", "Qwen3-8B"),
+        ("gpt2", "gpt2"),
+        ("HuggingFaceFW/fineweb", "fineweb"),
+        ("owner/name with spaces", "name with spaces"),
+        ("owner/a:b*c", "a-b-c"),
+        (r"owner/back\slash", "back-slash"),
+        ("owner/trailing.", "trailing"),
+        ("owner/nul", "_nul"),
+        ("owner/COM1", "_COM1"),
+    ],
+)
+def test_the_repository_folder_is_a_name_windows_will_take(repo_id, folder):
+    assert hub.RepoRef(repo_id=repo_id).folder_name == folder
+
+
+def test_a_folder_name_cannot_climb_out_of_the_chosen_folder():
+    """`..` as a name would be the folder above the one the user picked."""
+    assert hub.RepoRef(repo_id="owner/..").folder_name == ""
+    assert hub.RepoRef(repo_id="..").folder_name == ""
+
+
 def test_a_slug_carries_no_mirror():
     """A mirror in the history would be a stale answer, and refused after a change."""
     ref = hub.parse_ref("Qwen/Qwen3-8B", endpoint="https://hf-mirror.com")
