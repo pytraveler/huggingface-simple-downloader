@@ -46,7 +46,7 @@ from pathlib import Path
 from typing import Any
 
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, font, messagebox, ttk
 
 from dataclasses import replace
 
@@ -1011,16 +1011,29 @@ def _dpi() -> None:
         pass
 
 
+def _theme(app: tk.Tk) -> None:
+    """The native look, with list rows as tall as the text in them.
+
+    Tk 8.6 gives a Treeview row a flat 20 pixels whatever the font, while `_dpi`
+    lets the font grow with the Windows scale: at 150% a line of Segoe UI 9 is
+    25 pixels and every file name loses its lower half. The row is the line
+    plus 4 points, which at 100% is the same 20 pixels as before.
+    """
+    try:
+        style = ttk.Style(app)
+        if "vista" in style.theme_names():
+            style.theme_use("vista")
+        line = font.nametofont("TkDefaultFont").metrics("linespace")
+        style.configure("Treeview", rowheight=line + app.winfo_pixels("4p"))
+    except tk.TclError:
+        pass
+
+
 def main() -> int:
     _setup_logging()
     log.info("hf-simple-downloader %s", __version__)
     _dpi()
     app = App()
-    try:
-        style = ttk.Style(app)
-        if "vista" in style.theme_names():
-            style.theme_use("vista")
-    except tk.TclError:
-        pass
+    _theme(app)
     app.mainloop()
     return 0

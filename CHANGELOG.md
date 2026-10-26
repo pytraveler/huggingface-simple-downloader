@@ -5,6 +5,17 @@
 The number in the window title, the git tag and `src/hfdl/__init__.py` always say
 the same thing; the release workflow refuses to publish a tag that does not.
 
+## 1.3.2 - 2026-10-26
+
+### Fixed
+
+- **File names are no longer cut in half on a scaled screen.** With Windows set
+  to 150% or more, the rows of **Files** and **Downloads** were shorter than the
+  text in them and showed only the top half of each name. Tk gives a list row a
+  fixed 20 pixels, while the font grows with the scale. A row is now as tall as a
+  line of the font plus a margin, so it stays 20 pixels at 100% and grows with the
+  scale above that.
+
 ## 1.3.1 - 2026-09-19
 
 ### Added
